@@ -26,30 +26,40 @@ Please see the notebook [nanobody_design/run_nanobody_design.ipynb](https://gith
 
 ### Biomarker Analysis for Prognosis Prediction
 
-The Virtual Lab includes a comprehensive toolkit for identifying prognostic biomarker genes from gene expression data with survival outcomes. This application demonstrates how the platform can be used for general-purpose bioinformatics analysis beyond the nanobody design case study.
+The Virtual Lab enables **AI-guided biomarker discovery** where LLM agents collaborate to identify prognostic genes from gene expression data. The agent team discusses strategies, selects methods, interprets results, and plans validation—mimicking a real research team.
 
 #### Features
 
-- **Multiple Statistical Methods**: Cox Proportional Hazards, Log-rank test, Differential Expression, Elastic Net Cox Regression
-- **Consensus Gene Selection**: Identify robust biomarkers that are significant across multiple methods
-- **Comprehensive Visualization**: Volcano plots, Kaplan-Meier curves, heatmaps, and more
-- **Easy-to-use Interface**: Command-line tool and interactive Jupyter notebook
+- **AI Agent Team**: Biostatistician, Bioinformatician, Clinical Oncologist, Systems Biologist
+- **Collaborative Analysis**: Agents discuss and justify statistical approaches
+- **Multiple Statistical Methods**: Cox Proportional Hazards, Log-rank test, Differential Expression, Elastic Net
+- **Literature Integration**: Agents search PubMed for biological context
+- **Clinical Interpretation**: AI provides clinically-relevant insights
+- **Comprehensive Visualization**: Volcano plots, Kaplan-Meier curves, heatmaps
 
 #### Quick Start
 
-**Using Pixi (Recommended):**
+**AI-Guided Discovery (Recommended - Uses LLM Agents):**
 
 ```bash
-# Run the complete biomarker analysis
-pixi run biomarker-analysis
-
-# Or launch the interactive tutorial
-pixi run biomarker-tutorial
+# Launch agent-based biomarker discovery workflow
+jupyter notebook biomarker_analysis/run_biomarker_discovery.ipynb
 ```
 
-**Using Python directly:**
+The agents will:
+1. Plan the analysis strategy (statistical methods, validation)
+2. Execute biomarker discovery with selected methods
+3. Interpret results with biological/clinical context
+4. Search PubMed for literature support
+5. Propose validation experiments
+
+**Direct Analysis (Without Agents):**
 
 ```bash
+# Run the complete biomarker analysis directly
+pixi run biomarker-analysis
+
+# Or use Python directly
 cd biomarker_analysis/scripts
 
 python select_marker_genes.py \
@@ -60,9 +70,10 @@ python select_marker_genes.py \
     --visualization
 ```
 
-**Using Jupyter Notebook:**
+**Learning Tutorial:**
 
 ```bash
+# Interactive tutorial (no agents, educational)
 jupyter notebook biomarker_analysis/tutorial_biomarker_selection.ipynb
 ```
 
@@ -120,20 +131,36 @@ The tutorial covers:
 
 ### Genome-Scale Metabolic Modeling
 
-The Virtual Lab includes a comprehensive toolkit for genome-scale metabolic modeling using COBRApy. This module enables identification of gene knockout/knockdown targets for metabolic engineering, drug discovery, and systems biology applications.
+The Virtual Lab enables **AI-guided metabolic engineering** where LLM agents collaborate to design gene knockout strategies using genome-scale metabolic models. The agent team selects models, interprets flux distributions, designs strains, and plans validation—bringing systems biology expertise to metabolic engineering.
 
 #### Features
 
-- **Constraint-Based Modeling**: Flux Balance Analysis (FBA) and Flux Variability Analysis (FVA)
-- **Gene Knockout Simulation**: Single and double gene knockout analysis
-- **Essential Gene Identification**: Find critical genes for survival
-- **Synthetic Lethality Discovery**: Identify gene pairs that are lethal when deleted together
-- **Growth-Coupled Production**: Design strains for optimal bioproduction
-- **Multiple Model Support**: E. coli, human (Recon3D), yeast, and custom models
+- **AI Agent Team**: Metabolic Engineer, Systems Biologist, Computational Biologist, Experimental Biologist
+- **Collaborative Design**: Agents discuss knockout strategies and engineering trade-offs
+- **Constraint-Based Modeling**: Flux Balance Analysis (FBA) and Flux Variability Analysis (FVA) with COBRApy
+- **Gene Knockout Simulation**: Single/double knockouts, essential genes, synthetic lethality
+- **Literature Integration**: Agents search PubMed for prior studies and gene functions
+- **Experimental Planning**: AI proposes validation experiments and assesses feasibility
+- **Multiple Organisms**: E. coli, human (Recon3D), yeast, and custom models
 
 #### Quick Start
 
-**Using Pixi (Recommended):**
+**AI-Guided Metabolic Engineering (Recommended - Uses LLM Agents):**
+
+```bash
+# Launch agent-based metabolic engineering workflow
+jupyter notebook metabolic_modeling/run_metabolic_engineering.ipynb
+```
+
+The agents will:
+1. Plan the metabolic engineering project (goals, model selection)
+2. Execute genome-scale metabolic simulations (FBA, gene knockouts)
+3. Interpret flux distributions and knockout effects
+4. Design specific engineered strains
+5. Search PubMed for gene functions and prior work
+6. Plan experimental validation protocols
+
+**Direct Analysis (Without Agents):**
 
 ```bash
 # Run metabolic analysis with E. coli core model (fast)
@@ -142,34 +169,20 @@ pixi run metabolic-analysis
 # Run with larger E. coli iML1515 model
 pixi run metabolic-iml1515
 
-# Launch the interactive tutorial
-pixi run metabolic-tutorial
-```
-
-**Using Python directly:**
-
-```bash
+# Or use Python directly
 cd metabolic_modeling/scripts
 
-# E. coli core model (fast, for testing)
 python metabolic_target_finder.py \
     --model_id textbook \
     --output_dir ../../metabolic_results \
     --ko_methods single essential fva \
     --visualization
-
-# E. coli iML1515 (comprehensive)
-python metabolic_target_finder.py \
-    --model_id iML1515 \
-    --output_dir ../../metabolic_results \
-    --ko_methods single essential fva \
-    --growth_threshold 0.1 \
-    --visualization
 ```
 
-**Using Jupyter Notebook:**
+**Learning Tutorial:**
 
 ```bash
+# Interactive COBRApy tutorial (no agents, educational)
 jupyter notebook metabolic_modeling/tutorial_metabolic_modeling.ipynb
 ```
 
