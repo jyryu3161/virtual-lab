@@ -28,7 +28,34 @@ metabolic_modeling/
 
 ## Quick Start
 
-### Method 1: Using Pixi (Recommended)
+### Method 1: Using YAML Configuration (Recommended) 🆕
+
+```bash
+cd metabolic_modeling
+
+# Create your config file from the example
+cp config_example.yaml my_analysis.yaml
+
+# Edit the config file to set your parameters
+# vim my_analysis.yaml
+
+# Run analysis with config
+python scripts/run_with_config.py my_analysis.yaml
+
+# Dry run (validate config without running)
+python scripts/run_with_config.py my_analysis.yaml --dry-run
+```
+
+**Why use YAML config?**
+- ✅ All parameters in one place (model, methods, output)
+- ✅ Easy to reproduce experiments
+- ✅ Version control your analysis settings
+- ✅ Share configurations with collaborators
+- ✅ Support for pathway design configuration
+
+See [Configuration Guide](#configuration-guide) for detailed parameter descriptions.
+
+### Method 2: Using Pixi
 
 ```bash
 # From the virtual-lab root directory
@@ -43,7 +70,7 @@ pixi run metabolic-tutorial
 pixi run test-metabolic
 ```
 
-### Method 2: Command Line
+### Method 3: Command Line
 
 ```bash
 cd metabolic_modeling/scripts
@@ -541,6 +568,608 @@ python metabolic_target_finder.py \
 - **COBRApy getting started**: https://cobrapy.readthedocs.io/en/latest/getting_started.html
 - **Escher** (flux visualization): https://escher.github.io/
 - **MEMOTE** (model quality control): https://memote.io/
+
+## Methodology: How It Works
+
+### Overall Approach
+
+Genome-scale metabolic modeling uses **constraint-based analysis** to predict cellular behavior without requiring kinetic parameters:
+
+```
+Metabolic Network → Constraints → Optimization → Flux Predictions → Phenotype Predictions
+```
+
+#### Step 1: Model Representation
+
+**Stoichiometric Matrix (S)**:
+```
+S·v = 0  (steady-state assumption)
+
+where:
+  S = m × n matrix (m metabolites, n reactions)
+  v = flux vector (reaction rates)
+  0 = metabolite accumulation (steady state)
+```
+
+**Example**:
+```
+Reaction: Glucose + ATP → G6P + ADP
+Stoichiometry: 1 glc + 1 atp → 1 g6p + 1 adp
+
+Matrix row for glucose: [-1, 0, 0, ...]  (consumed)
+Matrix row for g6p:     [+1, 0, 0, ...]  (produced)
+```
+
+#### Step 2: Constraints
+
+Three types of constraints define the solution space:
+
+**1. Stoichiometric constraints**: `S·v = 0`
+
+**2. Flux bounds** (thermodynamics, capacity):
+```
+vₘᵢₙ ≤ v ≤ vₘₐₓ
+
+Examples:
+  Irreversible reaction: 0 ≤ v ≤ 1000
+  Reversible reaction: -1000 ≤ v ≤ 1000
+  Glucose uptake: -10 ≤ v_glc ≤ 0  (limited to 10 mmol/gDW/h)
+```
+
+**3. Objective function** (typically biomass maximization):
+```
+maximize Z = c^T · v
+
+where:
+  c = objective coefficient vector
+  (usually c_biomass = 1, all others = 0)
+```
+
+#### Step 3: Flux Balance Analysis (FBA)
+
+**Mathematical formulation**:
+```
+maximize    c^T · v
+subject to  S · v = 0
+            lb ≤ v ≤ ub
+```
+
+**Solution**:
+- Linear programming problem
+- Finds optimal flux distribution
+- Predicts growth rate and metabolite production
+
+**Assumptions**:
+- Steady state (no metabolite accumulation)
+- Optimal behavior (cells maximize objective)
+- No enzyme kinetics required
+- No regulatory information needed
+
+### Detailed Method Descriptions
+
+#### 1. Single Gene Knockout Analysis
+
+**Algorithm**:
+```python
+wild_type_growth = FBA(model)
+
+results = []
+for gene in model.genes:
+    with model:  # Temporary context
+        gene.knock_out()  # Delete gene
+
+        # Update reaction bounds based on GPR
+        # (Gene-Protein-Reaction associations)
+        update_reaction_bounds()
+
+        mutant_growth = FBA(model)
+        growth_fraction = mutant_growth / wild_type_growth
+
+        results.append({
+            'gene': gene.id,
+            'growth_fraction': growth_fraction,
+            'essential': growth_fraction < threshold
+        })
+
+return results
+```
+
+**Gene-Protein-Reaction (GPR) Rules**:
+```
+Gene A → Enzyme A → Reaction 1
+
+GPR logic:
+  - AND: "geneA and geneB" (both required, complex)
+  - OR:  "geneA or geneB" (either sufficient, isozymes)
+
+Example:
+  Reaction: "gene123 or (gene456 and gene789)"
+
+  Knockout gene123: Reaction still active (gene456+789 work)
+  Knockout gene456: Reaction inactive (need both 456 AND 789)
+```
+
+**Classification**:
+- **Essential**: `growth < 0.05 × wild_type` → lethal deletion
+- **Important**: `0.05 < growth < 0.5` → severely impaired
+- **Minor**: `0.5 < growth < 0.95` → slightly impaired
+- **Neutral**: `growth ≥ 0.95` → no significant effect
+
+#### 2. Flux Variability Analysis (FVA)
+
+**Purpose**: Find the range of fluxes each reaction can carry while maintaining near-optimal growth.
+
+**Algorithm**:
+```python
+optimal_growth = FBA(model)
+min_growth = fraction × optimal_growth  # e.g., 0.9 × optimal
+
+for reaction in model.reactions:
+    # Minimize flux through this reaction
+    model.objective = reaction
+    min_flux = FBA(model, sense='minimize')
+
+    # Maximize flux through this reaction
+    max_flux = FBA(model, sense='maximize')
+
+    flux_range = max_flux - min_flux
+
+    # Classify reaction
+    if min_flux == 0 and max_flux == 0:
+        status = "blocked"
+    elif min_flux * max_flux > 0:
+        status = "essential" (always active)
+    else:
+        status = "variable"
+```
+
+**Interpretation**:
+- **Narrow range**: Tightly constrained, less flexibility
+- **Wide range**: High flexibility, redundant pathways
+- **Zero range (blocked)**: Dead-end reaction, can be removed
+- **Essential flux**: Required for optimal growth
+
+**Applications**:
+- Identify engineering targets (variable but important)
+- Find metabolic bottlenecks (narrow essential reactions)
+- Detect model errors (unexpectedly blocked reactions)
+
+#### 3. Double Gene Knockout (Synthetic Lethality)
+
+**Concept**: Two genes that are individually non-essential but lethal when deleted together.
+
+**Algorithm**:
+```python
+wild_type_growth = FBA(model)
+
+synthetic_lethal_pairs = []
+
+for gene1, gene2 in all_gene_pairs:
+    # Check individual knockouts
+    ko1_growth = knockout_and_fba(gene1)
+    ko2_growth = knockout_and_fba(gene2)
+
+    # Both individually non-essential
+    if ko1_growth > threshold and ko2_growth > threshold:
+
+        # Test double knockout
+        double_ko_growth = knockout_and_fba([gene1, gene2])
+
+        # Synergy score
+        expected = (ko1_growth * ko2_growth) / wild_type_growth
+        observed = double_ko_growth
+        synergy = expected - observed
+
+        if double_ko_growth < threshold and synergy > 0.1:
+            synthetic_lethal_pairs.append({
+                'gene1': gene1,
+                'gene2': gene2,
+                'synergy_score': synergy
+            })
+
+return synthetic_lethal_pairs
+```
+
+**Synergy Score**:
+```
+synergy = (f₁ × f₂) - f₁₂
+
+where:
+  f₁ = growth fraction with gene1 KO
+  f₂ = growth fraction with gene2 KO
+  f₁₂ = growth fraction with both KO
+
+High synergy → strong synthetic lethality
+```
+
+**Applications**:
+- **Cancer therapy**: Target synthetic lethal pairs (one gene already defective in cancer)
+- **Antibiotic combinations**: Design drug combinations
+- **Metabolic engineering**: Find backup pathways
+
+#### 4. Growth-Coupled Production
+
+**Goal**: Engineer strains where product formation is coupled to cell growth.
+
+**Algorithm**:
+```python
+target_metabolite = "ethanol"  # Production target
+
+wild_type_growth = FBA(model)
+
+candidates = []
+
+for gene in model.genes:
+    with model:
+        gene.knock_out()
+
+        # Maximize growth
+        model.objective = "biomass"
+        ko_growth = FBA(model)
+
+        # Get production rate at optimal growth
+        production_flux = model.reactions.get_by_id(
+            f"EX_{target_metabolite}"
+        ).flux
+
+        # Check if production is coupled
+        if production_flux > 0 and ko_growth > threshold:
+            coupling_strength = production_flux / ko_growth
+
+            candidates.append({
+                'gene': gene.id,
+                'growth': ko_growth,
+                'production': production_flux,
+                'coupling': coupling_strength
+            })
+
+return sorted(candidates, key=lambda x: x['coupling'], reverse=True)
+```
+
+**Coupling Metrics**:
+- **Weak coupling**: Production possible without growth
+- **Strong coupling**: Must produce to grow
+- **Ideal target**: High production AND reasonable growth
+
+**Verification**:
+```python
+# Test if production is truly required for growth
+model.reactions.get_by_id(f"EX_{target}").lower_bound = 0  # Block export
+
+growth_without_production = FBA(model)
+# If growth == 0, production is essential (strongly coupled)
+```
+
+#### 5. Heterologous Pathway Design
+
+**Workflow for non-native compound production**:
+
+```
+1. Target Selection
+   └→ Compound not in native metabolism
+
+2. Pathway Search
+   └→ Find enzymatic route (KEGG, MetaCyc, literature)
+
+3. Enzyme Selection
+   └→ Choose genes from source organism
+
+4. Model Modification
+   ├→ Add new metabolites (formula, compartment)
+   ├→ Add reactions (stoichiometry, bounds)
+   ├→ Balance cofactors (NAD, ATP, etc.)
+   └→ Add gene associations (heterologous genes)
+
+5. Feasibility Testing
+   └→ FBA: Can pathway produce target?
+
+6. Optimization
+   └→ Gene knockouts to enhance production
+
+7. Strain Design
+   └→ Integrate pathway + knockouts
+```
+
+**Example: 1,3-Propanediol from Glycerol**:
+
+```python
+from pathway_designer_tools import PathwayDesigner
+import cobra
+
+model = cobra.io.load_model("iML1515")
+designer = PathwayDesigner(model)
+
+# Step 1: Add new metabolites
+hpa = designer.add_metabolite(
+    "3hpald_c",
+    "3-Hydroxypropionaldehyde",
+    "C3H6O2",
+    "c"
+)
+pdo = designer.add_metabolite(
+    "13ppd_c",
+    "1,3-Propanediol",
+    "C3H8O2",
+    "c"
+)
+
+# Step 2: Add heterologous reactions
+# Reaction 1: Glycerol → 3-HPA (from K. pneumoniae)
+designer.add_reaction(
+    "DhaB",
+    "Glycerol dehydratase",
+    {
+        model.metabolites.glyc_c: -1,
+        hpa: 1,
+        model.metabolites.h2o_c: 1
+    },
+    gene_reaction_rule="dhaB1 and dhaB2 and dhaB3"  # Heterologous
+)
+
+# Reaction 2: 3-HPA → 1,3-PDO (from K. pneumoniae)
+designer.add_reaction(
+    "DhaT",
+    "1,3-propanediol oxidoreductase",
+    {
+        hpa: -1,
+        model.metabolites.nadh_c: -1,
+        model.metabolites.h_c: -1,
+        pdo: 1,
+        model.metabolites.nad_c: 1
+    },
+    gene_reaction_rule="dhaT"  # Heterologous
+)
+
+# Step 3: Add export reaction
+designer.add_exchange_reaction(pdo)
+
+# Step 4: Test feasibility
+result = designer.test_pathway_feasibility("13ppd_c")
+print(f"Production rate: {result['production_flux']:.3f} mmol/gDW/h")
+
+# Step 5: Find knockouts to enhance production
+# (Run single KO analysis with target = 13ppd_c)
+```
+
+### Workflow Diagram
+
+```
+┌─────────────────────────────────────────┐
+│    Load Genome-Scale Metabolic Model    │
+│  - SBML, JSON, or from BiGG database   │
+│  - Validate model (mass balance, etc.)  │
+└──────────────────┬──────────────────────┘
+                   │
+                   ▼
+         ┌──────────────────┐
+         │   Set Objective   │
+         │  - Biomass (max)  │
+         │  - Product (max)  │
+         └─────────┬─────────┘
+                   │
+    ┌──────────────┼──────────────┐
+    │              │              │
+    ▼              ▼              ▼
+┌────────┐  ┌────────────┐  ┌──────────┐
+│Single  │  │  Essential │  │   FVA    │
+│Gene KO │  │   Genes    │  │ Analysis │
+└───┬────┘  └─────┬──────┘  └────┬─────┘
+    │             │              │
+    │             ▼              │
+    │      ┌────────────┐        │
+    │      │Double KO   │        │
+    │      │ Synthetic  │        │
+    │      │ Lethality  │        │
+    │      └─────┬──────┘        │
+    │            │               │
+    └──────┬─────┴──────┬────────┘
+           │            │
+           ▼            ▼
+    ┌─────────────────────────┐
+    │  Growth-Coupled Prod    │
+    │  - Target metabolite    │
+    │  - Find KO for coupling │
+    └──────────┬──────────────┘
+               │
+               ▼
+    ┌──────────────────────┐
+    │ Pathway Design (Opt) │
+    │ - Add reactions      │
+    │ - Add metabolites    │
+    │ - Test feasibility   │
+    └──────────┬───────────┘
+               │
+               ▼
+       ┌───────────────┐
+       │ Optimization  │
+       │ - Rank targets│
+       │ - Validate    │
+       └───────┬───────┘
+               │
+               ▼
+         ┌──────────┐
+         │  OUTPUT  │
+         │ CSV + PDF│
+         └──────────┘
+```
+
+## Configuration Guide
+
+The `config_example.yaml` file provides comprehensive configuration for all analysis parameters:
+
+### Key Configuration Sections
+
+#### 1. Model Configuration
+
+```yaml
+model:
+  source: "bigg"          # or "file"
+  bigg_id: "iML1515"      # E. coli model
+
+  modifications:
+    custom_bounds:
+      EX_glc__D_e: [-10, 0]  # Glucose uptake
+      EX_o2_e: [-20, 0]       # Oxygen uptake
+
+    objective: "BIOMASS_Ec_iML1515_core_75p37M"
+    medium: "default"         # or "minimal", "rich", "custom"
+```
+
+**Options**:
+- `source: "bigg"` → Load from BiGG database (iML1515, Recon3D, etc.)
+- `source: "file"` → Load from local SBML/JSON/MAT file
+- `custom_bounds` → Set uptake rates, production limits
+- `medium` → Predefined growth conditions
+
+#### 2. Analysis Methods
+
+```yaml
+methods:
+  enabled:
+    - single
+    - essential
+    - fva
+    - production  # Optional
+    - pathway     # Optional
+
+  single_knockout:
+    growth_threshold: 0.05  # Essential if < 5% WT growth
+    processes: -1           # Parallel processes
+
+  fva:
+    fraction_of_optimum: 0.9
+    reactions: "all"  # or list specific reactions
+```
+
+**Method Selection**:
+- Enable only needed methods (faster runtime)
+- Adjust thresholds based on organism/application
+- Use parallelization for large models
+
+#### 3. Pathway Design Configuration
+
+```yaml
+methods:
+  pathway_design:
+    enabled: true
+    target_compound: "13ppd_c"
+    pathway_template: "1-3-propanediol"  # or "custom"
+
+    custom_pathway:
+      metabolites:
+        - id: "new_met_c"
+          name: "New Metabolite"
+          formula: "C6H12O6"
+          compartment: "c"
+
+      reactions:
+        - id: "NEW_RXN"
+          name: "New Reaction"
+          metabolites: {glc__D_c: -1, new_met_c: 1}
+          gene_reaction_rule: "heterologous_gene"
+
+    cofactor_balancing: true
+    test_feasibility: true
+```
+
+**Pathway Templates**:
+- `ethanol`: Ethanol production from pyruvate
+- `succinate`: Enhanced succinate production
+- `1-3-propanediol`: 1,3-PDO from glycerol
+- `custom`: Define your own pathway
+
+#### 4. Output and Visualization
+
+```yaml
+output:
+  output_dir: "../metabolic_results"
+  save_model: true  # Save modified model
+
+visualization:
+  enabled: true
+  plots:
+    growth_impact: true
+    flux_distribution: true
+    pathway_map: false  # Requires escher
+```
+
+### Example Configurations
+
+**Fast testing (core model)**:
+```yaml
+model:
+  source: "bigg"
+  bigg_id: "textbook"  # Core model (fast)
+
+methods:
+  enabled:
+    - single
+    - fva
+```
+
+**Production strain design**:
+```yaml
+model:
+  source: "bigg"
+  bigg_id: "iML1515"
+  modifications:
+    custom_bounds:
+      EX_glc__D_e: [-10, 0]
+      EX_o2_e: [-20, 0]
+
+methods:
+  enabled:
+    - single
+    - fva
+    - production
+
+  production:
+    enabled: true
+    target_metabolite: "succ_c"
+    min_production: 0.1
+```
+
+**Heterologous pathway engineering**:
+```yaml
+model:
+  source: "bigg"
+  bigg_id: "iML1515"
+
+methods:
+  enabled:
+    - pathway
+    - single
+    - production
+
+  pathway_design:
+    enabled: true
+    target_compound: "13ppd_c"
+    pathway_template: "1-3-propanediol"
+    test_feasibility: true
+
+  production:
+    enabled: true
+    target_metabolite: "13ppd_c"
+```
+
+**Drug target discovery (human)**:
+```yaml
+model:
+  source: "bigg"
+  bigg_id: "Recon3D"
+
+methods:
+  enabled:
+    - essential
+    - double  # Synthetic lethality
+
+  essential_genes:
+    growth_threshold: 0.05
+
+  double_knockout:
+    growth_threshold: 0.05
+    only_synthetic_lethal: true
+```
 
 ## Citation
 

@@ -39,7 +39,18 @@ The Virtual Lab enables **AI-guided biomarker discovery** where LLM agents colla
 
 #### Quick Start
 
-**AI-Guided Discovery (Recommended - Uses LLM Agents):**
+**Using YAML Configuration (Recommended for Reproducibility):** 🆕
+
+```bash
+cd biomarker_analysis
+cp config_example.yaml my_analysis.yaml
+# Edit my_analysis.yaml to set your parameters
+python scripts/run_with_config.py my_analysis.yaml
+```
+
+All parameters (data files, methods, thresholds) in one place!
+
+**AI-Guided Discovery (Recommended for Scientific Insights):**
 
 ```bash
 # Launch agent-based biomarker discovery workflow
@@ -53,7 +64,7 @@ The agents will:
 4. Search PubMed for literature support
 5. Propose validation experiments
 
-**Direct Analysis (Without Agents):**
+**Direct Analysis (Command Line):**
 
 ```bash
 # Run the complete biomarker analysis directly
@@ -145,11 +156,25 @@ The Virtual Lab enables **AI-guided metabolic engineering** where LLM agents col
 
 #### Quick Start
 
-**AI-Guided Metabolic Engineering (Recommended - Uses LLM Agents):**
+**Using YAML Configuration (Recommended for Reproducibility):** 🆕
+
+```bash
+cd metabolic_modeling
+cp config_example.yaml my_analysis.yaml
+# Edit my_analysis.yaml to set model, methods, pathway design
+python scripts/run_with_config.py my_analysis.yaml
+```
+
+All parameters (model selection, methods, pathway design) in one place!
+
+**AI-Guided Metabolic Engineering (Recommended for Scientific Insights):**
 
 ```bash
 # Launch agent-based metabolic engineering workflow
 jupyter notebook metabolic_modeling/run_metabolic_engineering.ipynb
+
+# Or with heterologous pathway design
+jupyter notebook metabolic_modeling/run_metabolic_engineering_with_pathway.ipynb
 ```
 
 The agents will:
@@ -160,7 +185,7 @@ The agents will:
 5. Search PubMed for gene functions and prior work
 6. Plan experimental validation protocols
 
-**Direct Analysis (Without Agents):**
+**Direct Analysis (Command Line):**
 
 ```bash
 # Run metabolic analysis with E. coli core model (fast)

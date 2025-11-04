@@ -1,0 +1,175 @@
+# Biomarker Analysis Configuration File
+# This file controls all parameters for prognostic marker gene selection
+
+# ============================================================================
+# DATA CONFIGURATION
+# ============================================================================
+data:
+  # Input gene expression data with survival outcomes
+  input_file: "../Example_TCGA_TNBC_data.csv"
+
+  # Column names in the input file
+  columns:
+    gene_expression_prefix: ""  # Prefix for gene columns (empty = all numeric columns)
+    survival_time: "OS.year"    # Survival time column
+    survival_event: "OS"         # Event indicator (1=event, 0=censored)
+    sample_id: null              # Sample identifier column (optional)
+
+  # Data filtering
+  filters:
+    min_expression_variance: 0.0  # Minimum variance to include gene
+    remove_low_variance_genes: false
+    min_samples: 10                # Minimum samples required
+
+# ============================================================================
+# OUTPUT CONFIGURATION
+# ============================================================================
+output:
+  # Output directory for all results
+  output_dir: "../biomarker_results"
+
+  # File naming
+  prefix: "marker_gene"  # Prefix for output files
+
+  # What to save
+  save_results: true
+  save_plots: true
+  save_intermediate: false  # Save intermediate calculations
+
+# ============================================================================
+# ANALYSIS METHODS
+# ============================================================================
+methods:
+  # Which statistical methods to apply
+  # Options: cox, logrank, differential, elasticnet
+  enabled:
+    - cox
+    - logrank
+    - differential
+    - elasticnet
+
+  # Cox Proportional Hazards Regression
+  cox:
+    alpha: 0.05              # Significance threshold
+    adjust_multiple_testing: true
+    correction_method: "fdr_bh"  # Benjamini-Hochberg FDR
+
+  # Log-rank Test (Kaplan-Meier)
+  logrank:
+    alpha: 0.05
+    median_split: true       # Split by median expression
+    quantile_split: null     # Or use quantile (e.g., 0.33 for tertiles)
+    adjust_multiple_testing: true
+    correction_method: "fdr_bh"
+
+  # Differential Expression
+  differential:
+    alpha: 0.05
+    test_type: "mannwhitneyu"  # Options: mannwhitneyu, ttest
+    min_fold_change: 1.5      # Minimum fold change to report
+    adjust_multiple_testing: true
+    correction_method: "fdr_bh"
+
+  # Elastic Net Cox Regression
+  elasticnet:
+    alpha: 0.05
+    l1_ratio: 0.5           # Balance between L1 and L2 (0.5 = equal)
+    cv_folds: 5             # Cross-validation folds
+    n_alphas: 100           # Number of alphas to test
+    max_iter: 10000         # Maximum iterations
+
+# ============================================================================
+# CONSENSUS ANALYSIS
+# ============================================================================
+consensus:
+  # Minimum number of methods that must identify a gene
+  min_methods: 2
+
+  # Top N genes to report from each method
+  n_top_genes: 50
+
+  # Weight methods differently (optional)
+  method_weights:
+    cox: 1.0
+    logrank: 1.0
+    differential: 0.8
+    elasticnet: 1.2
+
+# ============================================================================
+# VISUALIZATION
+# ============================================================================
+visualization:
+  enabled: true
+
+  # Plot types to generate
+  plots:
+    volcano_plot: true
+    kaplan_meier: true
+    heatmap: true
+    forest_plot: true
+    correlation_plot: true
+
+  # Kaplan-Meier curves
+  kaplan_meier:
+    n_top_genes: 10        # Number of top genes to plot
+    show_confidence: true
+    show_risk_table: true
+
+  # Heatmap
+  heatmap:
+    n_top_genes: 30
+    cluster_samples: true
+    cluster_genes: true
+    colormap: "RdBu_r"
+
+  # Figure settings
+  figure:
+    dpi: 300
+    format: "pdf"           # Options: pdf, png, svg
+    style: "seaborn-v0_8"   # Matplotlib style
+
+# ============================================================================
+# AI AGENT CONFIGURATION (for AI-guided workflow)
+# ============================================================================
+agent:
+  # Whether to use AI agents (requires run_biomarker_discovery.ipynb)
+  enabled: false
+
+  # OpenAI API configuration
+  api:
+    model: "gpt-4"
+    temperature: 0.7
+    max_tokens: 2000
+
+  # PubMed search
+  pubmed:
+    enabled: true
+    max_results: 10
+    search_terms:
+      - "breast cancer prognosis"
+      - "TNBC biomarker"
+      - "survival prediction"
+
+  # Discussion settings
+  discussion:
+    save_logs: true
+    log_format: "both"      # Options: json, markdown, both
+    verbosity: "detailed"   # Options: minimal, normal, detailed
+
+# ============================================================================
+# ADVANCED OPTIONS
+# ============================================================================
+advanced:
+  # Random seed for reproducibility
+  random_seed: 42
+
+  # Parallel processing
+  n_jobs: -1               # -1 = use all CPUs
+
+  # Memory management
+  low_memory_mode: false
+  chunk_size: 1000         # For large datasets
+
+  # Logging
+  log_level: "INFO"        # Options: DEBUG, INFO, WARNING, ERROR
+  log_file: "analysis.log"
