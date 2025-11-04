@@ -87,9 +87,9 @@ PRODUCTION_ENGINEER = Agent(
 
 PATHWAY_DESIGNER = Agent(
     title="Pathway Designer",
-    expertise="pathway engineering, heterologous expression, cofactor balance, reaction thermodynamics",
-    goal="Design and optimize metabolic pathways for target production",
-    role="propose pathway modifications, balance cofactors, and ensure thermodynamic feasibility"
+    expertise="heterologous pathway design, enzyme selection, cofactor balancing, reaction stoichiometry, metabolic databases (KEGG, MetaCyc, BioCyc)",
+    goal="Design complete metabolic pathways for production of target compounds, including heterologous pathways when necessary",
+    role="propose pathway routes, select appropriate enzymes from literature, balance cofactors and redox, add reactions to models, and ensure thermodynamic feasibility"
 )
 
 # For drug discovery / antimicrobial targets
