@@ -16,39 +16,250 @@ If you use the Virtual Lab, please cite our work as follows:
 Swanson, K., Wu, W., Bulaong, N.L. et al. The Virtual Lab of AI agents designs new SARS-CoV-2 nanobodies. *Nature* (2025). https://doi.org/10.1038/s41586-025-09442-9
 
 
-## Virtual Lab for nanobody design
+## Applications
+
+### Virtual Lab for nanobody design
 
 As a real-world demonstration, we applied the Virtual Lab to design nanobodies for one of the latest variants of SARS-CoV-2 (see [nanobody_design](https://github.com/zou-group/virtual-lab/tree/main/nanobody_design)). The Virtual Lab built a computational pipeline consisting of [ESM](https://www.science.org/doi/10.1126/science.ade2574), [AlphaFold-Multimer](https://www.biorxiv.org/content/10.1101/2021.10.04.463034v2), and [Rosetta](https://rosettacommons.org/software/) and used it to design 92 nanobodies that were experimentally validated.
 
 Please see the notebook [nanobody_design/run_nanobody_design.ipynb](https://github.com/zou-group/virtual-lab/blob/main/nanobody_design/run_nanobody_design.ipynb) for an example of how to use the Virtual Lab to create agents and run team and individual meetings.
 
+### Biomarker Analysis for Prognosis Prediction
+
+The Virtual Lab includes a comprehensive toolkit for identifying prognostic biomarker genes from gene expression data with survival outcomes. This application demonstrates how the platform can be used for general-purpose bioinformatics analysis beyond the nanobody design case study.
+
+#### Features
+
+- **Multiple Statistical Methods**: Cox Proportional Hazards, Log-rank test, Differential Expression, Elastic Net Cox Regression
+- **Consensus Gene Selection**: Identify robust biomarkers that are significant across multiple methods
+- **Comprehensive Visualization**: Volcano plots, Kaplan-Meier curves, heatmaps, and more
+- **Easy-to-use Interface**: Command-line tool and interactive Jupyter notebook
+
+#### Quick Start
+
+**Using Pixi (Recommended):**
+
+```bash
+# Run the complete biomarker analysis
+pixi run biomarker-analysis
+
+# Or launch the interactive tutorial
+pixi run biomarker-tutorial
+```
+
+**Using Python directly:**
+
+```bash
+cd biomarker_analysis/scripts
+
+python select_marker_genes.py \
+    --input_file ../../Example_TCGA_TNBC_data.csv \
+    --output_dir ../../biomarker_results \
+    --n_top_genes 50 \
+    --methods cox logrank differential elasticnet \
+    --visualization
+```
+
+**Using Jupyter Notebook:**
+
+```bash
+jupyter notebook biomarker_analysis/tutorial_biomarker_selection.ipynb
+```
+
+#### Example Dataset
+
+The repository includes an example TCGA triple-negative breast cancer (TNBC) dataset:
+
+- **File**: `Example_TCGA_TNBC_data.csv`
+- **Samples**: 144 patients
+- **Features**: ~20,000 gene expression values (log-transformed)
+- **Outcomes**: Overall survival (OS) and survival time (OS.year)
+
+#### Output Files
+
+The analysis generates:
+
+- `consensus_genes.csv`: Genes ranked by appearance across methods
+- `{method}_results.csv`: Detailed results for each statistical method
+- `top_biomarkers_summary.csv`: Comprehensive summary of top genes
+- `marker_gene_analysis.pdf`: Visualization plots
+
+#### Statistical Methods
+
+1. **Cox Proportional Hazards Regression**
+   - Models the relationship between gene expression and survival time
+   - Accounts for censored data
+   - Outputs hazard ratios (HR) and confidence intervals
+
+2. **Log-rank Test (Kaplan-Meier Analysis)**
+   - Compares survival curves between high vs. low expression groups
+   - Non-parametric test for survival differences
+   - Generates Kaplan-Meier plots
+
+3. **Differential Expression Analysis**
+   - Compares expression between event and censored groups
+   - Uses Mann-Whitney U test (non-parametric)
+   - Calculates fold changes and significance
+
+4. **Elastic Net Cox Regression**
+   - Regularized Cox model with L1/L2 penalties
+   - Performs automatic feature selection
+   - Identifies sparse set of prognostic genes
+
+#### Tutorial
+
+For a comprehensive guide on biomarker selection, see the tutorial notebook:
+[biomarker_analysis/tutorial_biomarker_selection.ipynb](biomarker_analysis/tutorial_biomarker_selection.ipynb)
+
+The tutorial covers:
+- Data loading and exploration
+- Each statistical method in detail
+- Consensus gene identification
+- Result visualization and interpretation
+- Exporting results for further analysis
+
 
 ## Installation
 
-The Virtual Lab can be installed using pip or by cloning the repo and installing the required packages. Installation should only take a couple of minutes.
+The Virtual Lab can be installed using pip, conda, or pixi. Installation should only take a couple of minutes.
 
-Optionally, first create a conda environment.
+### Option 1: Quick Install with Pixi (Recommended)
+
+[Pixi](https://pixi.sh) is a fast, modern package manager that handles all dependencies automatically. This is the **recommended installation method** for the best out-of-the-box experience.
+
+#### Install Pixi
+
+```bash
+# On Linux and macOS
+curl -fsSL https://pixi.sh/install.sh | bash
+
+# On Windows
+iwr -useb https://pixi.sh/install.ps1 | iex
+```
+
+#### Install Virtual Lab
+
+```bash
+git clone https://github.com/zou-group/virtual_lab.git
+cd virtual_lab
+
+# Install all dependencies (one command!)
+pixi install
+
+# Activate the environment
+pixi shell
+```
+
+That's it! All dependencies including Python, Jupyter, and all scientific packages are now installed and ready to use.
+
+#### Available Pixi Commands
+
+```bash
+# Run biomarker analysis
+pixi run biomarker-analysis
+
+# Launch tutorial notebook
+pixi run biomarker-tutorial
+
+# Launch Jupyter Lab
+pixi run lab
+
+# Run nanobody design notebook
+pixi run nanobody-design
+
+# Quick test of biomarker analysis
+pixi run test-biomarker
+
+# Clean up generated files
+pixi run clean
+```
+
+#### Pixi Environments
+
+The Virtual Lab provides several pre-configured environments:
+
+- `default`: Core Virtual Lab functionality
+- `dev`: Development tools (pytest, black, ruff, mypy)
+- `nanobody`: Nanobody design dependencies
+- `biomarker`: Biomarker analysis dependencies
+- `full`: All features combined
+
+To use a specific environment:
+
+```bash
+# Use biomarker environment
+pixi shell -e biomarker
+
+# Use full environment with all features
+pixi shell -e full
+```
+
+### Option 2: Install with Conda
+
+Create a conda environment and install dependencies:
 
 ```bash
 conda create -y -n virtual_lab python=3.12
 conda activate virtual_lab
-```
 
-The Virtual Lab can be installed via pip.
-
-```bash
+# Install Virtual Lab
 pip install virtual-lab
+
+# For biomarker analysis, install additional dependencies
+pip install lifelines scikit-survival pandas scipy matplotlib seaborn
 ```
 
-To install a local version of the Virtual Lab, clone the repo and then install the package.
+### Option 3: Install with Pip (Minimal)
 
 ```bash
+# Install from PyPI
+pip install virtual-lab
+
+# Or install from source
 git clone https://github.com/zou-group/virtual_lab.git
 cd virtual_lab
 pip install -e .
 ```
 
+### Install Optional Dependencies
+
+For specific use cases, you may need additional packages:
+
+```bash
+# For nanobody design
+pip install -e ".[nanobody-design]"
+
+# For biomarker analysis
+pip install lifelines scikit-survival statsmodels
+```
+
+### Verify Installation
+
+```bash
+# Test Python import
+python -c "import virtual_lab; print('Virtual Lab successfully installed!')"
+
+# Check Jupyter is available
+jupyter --version
+
+# For biomarker analysis, test dependencies
+python -c "import lifelines, sksurv; print('Biomarker analysis dependencies installed!')"
+```
 
 ## OpenAI API Key
 
-The Virtual Lab currently uses GPT-4o from OpenAI. Save your OpenAI API key as the environment variable `OPENAI_API_KEY`. For example, add `export OPENAI_API_KEY=<your_key>` to your `.bashrc` or `.bash_profile`.
+The Virtual Lab currently uses GPT-4o from OpenAI. Save your OpenAI API key as the environment variable `OPENAI_API_KEY`.
+
+```bash
+# Add to your shell profile (.bashrc, .bash_profile, or .zshrc)
+export OPENAI_API_KEY='your-api-key-here'
+
+# Or set for current session
+export OPENAI_API_KEY='your-api-key-here'
+```
+
+To get an OpenAI API key:
+1. Visit https://platform.openai.com/api-keys
+2. Sign up or log in
+3. Create a new API key
+4. Copy and save it securely
