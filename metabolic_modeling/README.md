@@ -1,17 +1,17 @@
-# Genome-Scale Metabolic Modeling
+# Genome-Scale Metabolic Modeling for Metabolic Engineering
 
-This module provides comprehensive tools for identifying gene knockout/knockdown targets using genome-scale metabolic models (GEMs) and COBRApy.
+This module provides comprehensive tools for **metabolic engineering** and **strain design** using genome-scale metabolic models (GEMs) and COBRApy.
 
 ## Overview
 
-Genome-scale metabolic modeling uses constraint-based analysis to predict cellular behavior and identify metabolic engineering targets. This implementation provides:
+Genome-scale metabolic modeling uses constraint-based analysis to design production strains and optimize metabolic pathways. This implementation provides:
 
-- **Single & double gene knockout simulations**
-- **Essential gene identification**
-- **Synthetic lethality discovery**
-- **Flux variability analysis (FVA)**
-- **Growth-coupled production analysis**
-- **Comprehensive visualization**
+- **Gene knockout target identification** - Find deletions to enhance production
+- **Growth-coupled production design** - Couple product formation with cell growth
+- **Heterologous pathway engineering** - Add non-native pathways to organisms
+- **Flux variability analysis (FVA)** - Identify metabolic bottlenecks
+- **Production optimization** - Maximize yield and productivity
+- **AI-guided strain design** - LLM agents for engineering strategy
 
 ## Directory Structure
 
@@ -309,17 +309,19 @@ python metabolic_target_finder.py \
 | `--visualization` | bool | `True` | Generate plots |
 | `--random_seed` | int | `42` | Random seed |
 
-## Available Methods
+## Available Methods for Metabolic Engineering
 
 Use `--ko_methods` to select analyses:
 
-- `single`: Single gene knockout
-- `double`: Double gene knockout (slow!)
-- `essential`: Essential gene identification
-- `synthetic_lethality`: Find synthetic lethal pairs
-- `fva`: Flux variability analysis
-- `sampling`: Flux sampling
-- `production`: Growth-coupled production (requires `--target_metabolite`)
+- `single`: Single gene knockout - Identify deletions that enhance production
+- `essential`: Essential gene identification - Avoid lethal knockouts, ensure strain viability
+- `fva`: Flux variability analysis - Find metabolic bottlenecks and engineering targets
+- `production`: Growth-coupled production - Design strains where growth requires product formation
+- `pathway`: Heterologous pathway design - Add non-native production pathways
+
+**For advanced strain optimization:**
+- `double`: Double gene knockout - Find synergistic deletion combinations for higher yields
+- `sampling`: Flux sampling - Explore metabolic solution space
 
 ## Output Files
 
@@ -342,11 +344,12 @@ Use `--ko_methods` to select analyses:
 ### Visualization File
 
 - **`metabolic_analysis.pdf`**: Multi-page PDF with:
-  - Knockout growth distribution
+  - Knockout growth vs. production scatter plots
+  - Production enhancement ranking
   - Essential genes classification
-  - Synthetic lethality network
-  - FVA flux ranges
-  - Growth-coupled production plots
+  - FVA flux ranges and bottlenecks
+  - Growth-coupled production analysis
+  - Pathway feasibility assessment
 
 ## Metabolic Models
 
@@ -357,23 +360,25 @@ Use `--ko_methods` to select analyses:
   - Fast analysis (~1 minute)
   - Good for tutorials
 
-**For Production Use:**
+**For Metabolic Engineering:**
 
-**E. coli:**
+**E. coli (Workhorse for industrial production):**
 - `iML1515`: Latest E. coli model (2,712 reactions, 1,877 genes)
   - Most comprehensive E. coli model
-  - ~10-30 minutes for single KO
+  - Biofuel, chemical, and protein production
+  - ~10-30 minutes for single KO analysis
 
-**Human:**
-- `Recon3D`: Human metabolism (13,543 reactions, 3,288 genes)
-  - Most comprehensive human model
-  - Hours for complete analysis
-  - Use for drug target discovery
-
-**Yeast:**
+**Yeast (Eukaryotic production platform):**
 - `iMM904`: S. cerevisiae (1,577 reactions, 904 genes)
   - Well-validated yeast model
-  - Biotechnology applications
+  - Ethanol, protein, and complex molecule production
+  - Post-translational modifications support
+
+**Mammalian Cells (Biopharmaceuticals):**
+- `Recon3D`: Human metabolism (13,543 reactions, 3,288 genes)
+  - CHO cell engineering analogue
+  - Therapeutic protein production
+  - Hours for complete analysis
 
 ### Custom Models
 
@@ -490,54 +495,122 @@ pip install -r requirements.txt
 pixi install
 ```
 
-## Example Use Cases
+## Metabolic Engineering Use Cases
 
-### Use Case 1: Antibiotic Target Discovery
+### Use Case 1: Biofuel Production (Ethanol)
 
-Find essential genes in pathogenic bacteria:
-
-```bash
-python metabolic_target_finder.py \
-    --model_file models/pathogen_model.xml \
-    --ko_methods essential \
-    --growth_threshold 0.05 \
-    --output_dir antibiotic_targets
-```
-
-### Use Case 2: Biofuel Production
-
-Optimize E. coli for ethanol production:
+Optimize E. coli for ethanol production from glucose:
 
 ```bash
 python metabolic_target_finder.py \
     --model_id iML1515 \
-    --ko_methods single production \
+    --ko_methods single production fva \
     --target_metabolite etoh_c \
-    --output_dir biofuel_engineering
+    --output_dir ethanol_production
+
+# Find knockouts that couple growth with ethanol production
 ```
 
-### Use Case 3: Cancer Drug Targets
+**Expected results**: Identify gene deletions that redirect carbon flux from biomass precursors to ethanol, enhancing production while maintaining viability.
 
-Find synthetic lethal pairs in cancer metabolism:
+### Use Case 2: Platform Chemical Production (Succinate)
+
+Design strain for succinate production (bioplastic precursor):
+
+```bash
+python metabolic_target_finder.py \
+    --model_id iML1515 \
+    --ko_methods single double fva production \
+    --target_metabolite succ_c \
+    --output_dir succinate_production
+```
+
+**Strategy**:
+- Delete competing pathways (e.g., acetate, lactate)
+- Enhance TCA cycle flux
+- Optimize cofactor balance (NADH/NAD+)
+
+### Use Case 3: Heterologous Pathway Engineering (1,3-Propanediol)
+
+Add non-native pathway and optimize production:
+
+```bash
+# Using YAML config for complex pathway design
+python scripts/run_with_config.py configs/pdo_production.yaml
+```
+
+**Config example (pdo_production.yaml)**:
+```yaml
+model:
+  source: "bigg"
+  bigg_id: "iML1515"
+
+methods:
+  enabled:
+    - pathway
+    - single
+    - production
+
+  pathway_design:
+    enabled: true
+    target_compound: "13ppd_c"
+    pathway_template: "1-3-propanediol"  # From K. pneumoniae
+
+  production:
+    enabled: true
+    target_metabolite: "13ppd_c"
+```
+
+**Result**: Complete engineered strain with heterologous genes + native gene deletions.
+
+### Use Case 4: Amino Acid Overproduction (L-Lysine)
+
+Optimize yeast for lysine production (feed additive):
+
+```bash
+python metabolic_target_finder.py \
+    --model_id iMM904 \
+    --ko_methods single essential fva production \
+    --target_metabolite lys__L_c \
+    --output_dir lysine_production
+```
+
+**Key targets**:
+- Remove feedback inhibition pathways
+- Enhance precursor availability (oxaloacetate, pyruvate)
+- Avoid essential gene knockouts
+
+### Use Case 5: Therapeutic Protein Production (CHO Cells)
+
+Optimize mammalian cell metabolism for recombinant protein production:
 
 ```bash
 python metabolic_target_finder.py \
     --model_id Recon3D \
-    --ko_methods double essential \
-    --growth_threshold 0.1 \
-    --output_dir cancer_targets
+    --ko_methods single fva \
+    --growth_threshold 0.3 \
+    --output_dir cho_engineering
 ```
 
-### Use Case 4: Metabolic Engineering
+**Goals**:
+- Maximize specific productivity (protein per cell)
+- Enhance glycosylation precursor availability
+- Reduce lactate accumulation
+- Maintain cell viability
 
-Design strain for succinate production:
+### Use Case 6: Multi-Product Biorefinery
+
+Design E. coli for co-production of multiple chemicals:
 
 ```bash
+# Target multiple products simultaneously
 python metabolic_target_finder.py \
     --model_id iML1515 \
-    --ko_methods single fva production \
-    --target_metabolite succ_c \
-    --output_dir succinate_production
+    --ko_methods single fva \
+    --target_metabolite etoh_c \
+    --output_dir biorefinery
+
+# Analyze flux distribution for trade-offs
 ```
 
 ## Resources
@@ -734,58 +807,67 @@ for reaction in model.reactions:
 - Find metabolic bottlenecks (narrow essential reactions)
 - Detect model errors (unexpectedly blocked reactions)
 
-#### 3. Double Gene Knockout (Synthetic Lethality)
+#### 3. Double Gene Knockout (Synergistic Production Enhancement)
 
-**Concept**: Two genes that are individually non-essential but lethal when deleted together.
+**Concept**: Two gene deletions that together enhance production more than individually.
 
 **Algorithm**:
 ```python
 wild_type_growth = FBA(model)
+wild_type_production = get_production_flux(target_metabolite)
 
-synthetic_lethal_pairs = []
+synergistic_pairs = []
 
 for gene1, gene2 in all_gene_pairs:
     # Check individual knockouts
-    ko1_growth = knockout_and_fba(gene1)
-    ko2_growth = knockout_and_fba(gene2)
+    ko1_growth, ko1_prod = knockout_and_analyze(gene1)
+    ko2_growth, ko2_prod = knockout_and_analyze(gene2)
 
-    # Both individually non-essential
+    # Both individually viable
     if ko1_growth > threshold and ko2_growth > threshold:
 
         # Test double knockout
-        double_ko_growth = knockout_and_fba([gene1, gene2])
+        double_ko_growth, double_ko_prod = knockout_and_analyze([gene1, gene2])
 
-        # Synergy score
-        expected = (ko1_growth * ko2_growth) / wild_type_growth
-        observed = double_ko_growth
-        synergy = expected - observed
+        # Production synergy
+        expected_prod = max(ko1_prod, ko2_prod)  # Best single
+        observed_prod = double_ko_prod
 
-        if double_ko_growth < threshold and synergy > 0.1:
-            synthetic_lethal_pairs.append({
+        production_enhancement = observed_prod - expected_prod
+        yield_per_growth = double_ko_prod / double_ko_growth
+
+        if production_enhancement > 0.1 and double_ko_growth > threshold:
+            synergistic_pairs.append({
                 'gene1': gene1,
                 'gene2': gene2,
-                'synergy_score': synergy
+                'production': double_ko_prod,
+                'growth': double_ko_growth,
+                'yield': yield_per_growth,
+                'synergy': production_enhancement
             })
 
-return synthetic_lethal_pairs
+return sorted(synergistic_pairs, key=lambda x: x['yield'], reverse=True)
 ```
 
-**Synergy Score**:
+**Synergy Metrics**:
 ```
-synergy = (f₁ × f₂) - f₁₂
+Production Synergy = P₁₂ - max(P₁, P₂)
+Yield = P₁₂ / Growth₁₂
 
 where:
-  f₁ = growth fraction with gene1 KO
-  f₂ = growth fraction with gene2 KO
-  f₁₂ = growth fraction with both KO
+  P₁ = production with gene1 KO
+  P₂ = production with gene2 KO
+  P₁₂ = production with both KO
+  Growth₁₂ = growth with both KO
 
-High synergy → strong synthetic lethality
+High synergy + high yield → excellent double knockout target
 ```
 
 **Applications**:
-- **Cancer therapy**: Target synthetic lethal pairs (one gene already defective in cancer)
-- **Antibiotic combinations**: Design drug combinations
-- **Metabolic engineering**: Find backup pathways
+- **Enhanced production**: Combine complementary pathway deletions
+- **Eliminate by-products**: Delete multiple competing pathways
+- **Cofactor optimization**: Balance NADH/NADPH ratios with dual deletions
+- **Strain stability**: Find robust deletion combinations
 
 #### 4. Growth-Coupled Production
 

@@ -140,19 +140,20 @@ The tutorial covers:
 - Result visualization and interpretation
 - Exporting results for further analysis
 
-### Genome-Scale Metabolic Modeling
+### Genome-Scale Metabolic Modeling for Metabolic Engineering
 
-The Virtual Lab enables **AI-guided metabolic engineering** where LLM agents collaborate to design gene knockout strategies using genome-scale metabolic models. The agent team selects models, interprets flux distributions, designs strains, and plans validation—bringing systems biology expertise to metabolic engineering.
+The Virtual Lab enables **AI-guided metabolic engineering** where LLM agents collaborate to design production strains and optimize metabolic pathways. The agent team designs knockout strategies, interprets flux distributions, engineers heterologous pathways, and plans validation—bringing systems biology expertise to industrial strain development.
 
 #### Features
 
-- **AI Agent Team**: Metabolic Engineer, Systems Biologist, Computational Biologist, Experimental Biologist
-- **Collaborative Design**: Agents discuss knockout strategies and engineering trade-offs
+- **AI Agent Team**: Metabolic Engineer, Pathway Designer, Production Engineer, Systems Biologist
+- **Production Strain Design**: Agents optimize gene knockouts to enhance product yield
+- **Heterologous Pathway Engineering**: Design and add non-native production pathways
 - **Constraint-Based Modeling**: Flux Balance Analysis (FBA) and Flux Variability Analysis (FVA) with COBRApy
-- **Gene Knockout Simulation**: Single/double knockouts, essential genes, synthetic lethality
-- **Literature Integration**: Agents search PubMed for prior studies and gene functions
-- **Experimental Planning**: AI proposes validation experiments and assesses feasibility
-- **Multiple Organisms**: E. coli, human (Recon3D), yeast, and custom models
+- **Growth-Coupled Production**: Engineer strains where product formation is coupled to growth
+- **Literature Integration**: Agents search PubMed for metabolic engineering strategies
+- **Experimental Planning**: AI proposes strain construction and validation protocols
+- **Multiple Organisms**: E. coli (biofuels/chemicals), Yeast (complex molecules), CHO cells (therapeutics)
 
 #### Quick Start
 
@@ -211,45 +212,51 @@ python metabolic_target_finder.py \
 jupyter notebook metabolic_modeling/tutorial_metabolic_modeling.ipynb
 ```
 
-#### Available Models
+#### Available Organisms for Engineering
 
-**From BiGG Database:**
-- `textbook`: E. coli core model (95 reactions, 72 genes) - Fast, for learning
-- `iML1515`: Latest E. coli model (2,712 reactions, 1,877 genes) - Production use
-- `iJO1366`: Previous E. coli model (2,583 reactions, 1,366 genes)
-- `Recon3D`: Human metabolism (13,543 reactions, 3,288 genes) - Drug discovery
+**E. coli (Industrial workhorse):**
+- `textbook`: Core model (95 reactions, 72 genes) - Fast, for learning
+- `iML1515`: Latest model (2,712 reactions, 1,877 genes) - Production strain design
+- Applications: Biofuels, platform chemicals, proteins, enzymes
+
+**Yeast (Eukaryotic platform):**
 - `iMM904`: S. cerevisiae (1,577 reactions, 904 genes) - Yeast engineering
+- Applications: Ethanol, complex molecules, therapeutic proteins
+
+**Mammalian Cells (Biopharmaceuticals):**
+- `Recon3D`: Human metabolism (13,543 reactions, 3,288 genes) - CHO cell analogue
+- Applications: Therapeutic proteins, antibodies, vaccines
 
 **Custom Models:**
 - Load from SBML, JSON, or MAT files
 - Place in `metabolic_modeling/models/` directory
 
-#### Analysis Methods
+#### Engineering Methods
 
-1. **Single Gene Knockout**
-   - Systematically delete each gene
-   - Measure growth impact
-   - Classify essential vs. non-essential genes
+1. **Gene Knockout Optimization**
+   - Identify deletions that enhance production
+   - Test single and synergistic double knockouts
+   - Ensure strain viability (avoid essential genes)
 
-2. **Essential Gene Analysis**
-   - Identify genes critical for survival
-   - Applications: Antibiotic targets, cancer drug discovery
-   - Rank by criticality
+2. **Growth-Coupled Production**
+   - Engineer obligate coupling between growth and product formation
+   - Maximize yield and productivity
+   - Enable evolutionary stability
 
-3. **Double Gene Knockout (Synthetic Lethality)**
-   - Find gene pairs that are lethal together
-   - Applications: Combination therapy design
-   - Identify synergistic targets
+3. **Heterologous Pathway Design**
+   - Add non-native production pathways
+   - Select enzymes from literature (PubMed search)
+   - Balance cofactors and metabolic load
 
-4. **Flux Variability Analysis (FVA)**
-   - Determine flux range for each reaction
-   - Identify metabolic bottlenecks
-   - Find robust engineering targets
+4. **Flux Bottleneck Identification**
+   - Find rate-limiting steps using FVA
+   - Target amplification candidates
+   - Optimize metabolic flux distribution
 
-5. **Growth-Coupled Production**
-   - Design strains for bioproduction
-   - Couple product formation with growth
-   - Optimize yield and productivity
+5. **Strain Validation Planning**
+   - AI agents propose experimental protocols
+   - Predict phenotypes for validation
+   - Design growth and production assays
 
 #### Output Files
 
@@ -263,11 +270,21 @@ The analysis generates:
 - `growth_coupled_results.csv`: Production-enhancing knockouts
 - `metabolic_analysis.pdf`: Comprehensive visualization plots
 
-#### Use Cases
+#### Metabolic Engineering Use Cases
 
-**Metabolic Engineering:**
+**Biofuel Production (Ethanol):**
 ```bash
-# Optimize E. coli for succinate production
+# Optimize E. coli for ethanol from glucose
+python metabolic_target_finder.py \
+    --model_id iML1515 \
+    --ko_methods single production fva \
+    --target_metabolite etoh_c \
+    --output_dir ethanol_production
+```
+
+**Platform Chemical Production (Succinate):**
+```bash
+# Design succinate production strain
 python metabolic_target_finder.py \
     --model_id iML1515 \
     --ko_methods single production \
@@ -275,23 +292,12 @@ python metabolic_target_finder.py \
     --output_dir succinate_production
 ```
 
-**Drug Target Discovery:**
+**Heterologous Pathway Engineering (1,3-Propanediol):**
 ```bash
-# Find essential genes in pathogenic bacteria
-python metabolic_target_finder.py \
-    --model_file models/pathogen.xml \
-    --ko_methods essential \
-    --growth_threshold 0.05 \
-    --output_dir antibiotic_targets
-```
-
-**Cancer Research:**
-```bash
-# Identify synthetic lethal pairs in cancer metabolism
-python metabolic_target_finder.py \
-    --model_id Recon3D \
-    --ko_methods double essential \
-    --output_dir cancer_targets
+# Add non-native pathway and optimize
+cd metabolic_modeling
+python scripts/run_with_config.py configs/pdo_production.yaml
+# Includes pathway design from K. pneumoniae + knockout optimization
 ```
 
 #### Tutorial
