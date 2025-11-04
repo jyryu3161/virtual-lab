@@ -166,3 +166,16 @@ cython_debug/
 
 # Papers
 nanobody_design/discussions/finetuning/papers
+
+# Biomarker analysis results
+biomarker_results/
+example_biomarker_results/
+test_results/
+
+# Metabolic modeling results
+metabolic_results/
+metabolic_results_iml1515/
+
+# Pixi
+.pixi/
+pixi.lock

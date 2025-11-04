@@ -1,0 +1,127 @@
+[project]
+name = "virtual-lab"
+version = "1.0.0"
+description = "A virtual lab of large language model agents for scientific research with biomarker analysis capabilities"
+authors = ["Kyle Swanson <swansonk.14@gmail.com>"]
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64", "osx-64", "osx-arm64", "win-64"]
+
+[dependencies]
+# Core Python
+python = ">=3.10,<3.14"
+
+# Core Virtual Lab dependencies
+notebook = "*"
+jupyter = "*"
+jupyterlab = "*"
+ipykernel = "*"
+openai = "*"
+requests = "*"
+tiktoken = "*"
+tqdm = "*"
+typed-argument-parser = "*"
+
+# Data analysis and visualization
+pandas = "*"
+numpy = "*"
+scipy = "*"
+matplotlib = "*"
+seaborn = "*"
+
+# Biology and bioinformatics
+biopython = "*"
+
+# Deep learning (for nanobody design)
+pytorch = "*"
+transformers = "*"
+
+# Survival analysis and biomarker discovery
+lifelines = "*"
+scikit-survival = "*"
+scikit-learn = "*"
+statsmodels = "*"
+
+# Metabolic modeling (COBRApy)
+cobra = "*"
+python-libsbml = "*"
+optlang = "*"
+glpk = "*"
+
+# Additional utilities
+openpyxl = "*"
+xlrd = "*"
+
+[tasks]
+# Installation and setup
+install = "pip install -e ."
+install-dev = "pip install -e '.[nanobody-design]'"
+
+# Biomarker analysis tasks
+biomarker-analysis = "python biomarker_analysis/scripts/select_marker_genes.py --input_file Example_TCGA_TNBC_data.csv --output_dir biomarker_results --visualization"
+
+biomarker-tutorial = "jupyter notebook biomarker_analysis/tutorial_biomarker_selection.ipynb"
+
+# Metabolic modeling tasks
+metabolic-analysis = "python metabolic_modeling/scripts/metabolic_target_finder.py --model_id textbook --output_dir metabolic_results --ko_methods single essential fva --visualization"
+
+metabolic-tutorial = "jupyter notebook metabolic_modeling/tutorial_metabolic_modeling.ipynb"
+
+metabolic-iml1515 = { cmd = "python metabolic_modeling/scripts/metabolic_target_finder.py --model_id iML1515 --output_dir metabolic_results_iml1515 --ko_methods single essential fva --visualization", description = "Run analysis with E. coli iML1515 model" }
+
+# Nanobody design tasks
+nanobody-design = "jupyter notebook nanobody_design/run_nanobody_design.ipynb"
+
+# Testing
+test-biomarker = { cmd = "python biomarker_analysis/scripts/select_marker_genes.py --input_file Example_TCGA_TNBC_data.csv --output_dir test_results --n_top_genes 10 --methods cox logrank", description = "Quick test of biomarker analysis" }
+
+test-metabolic = { cmd = "python metabolic_modeling/scripts/metabolic_target_finder.py --model_id textbook --output_dir test_results --ko_methods single essential --visualization", description = "Quick test of metabolic modeling" }
+
+# Jupyter lab
+lab = "jupyter lab"
+notebook = "jupyter notebook"
+
+# Clean up
+clean = "rm -rf biomarker_results metabolic_results metabolic_results_iml1515 test_results __pycache__ .ipynb_checkpoints"
+
+[feature.dev.dependencies]
+# Development dependencies
+pytest = "*"
+black = "*"
+ruff = "*"
+mypy = "*"
+pre-commit = "*"
+
+[feature.dev.tasks]
+format = "black ."
+lint = "ruff check ."
+typecheck = "mypy src/"
+test = "pytest tests/"
+
+[feature.nanobody-design]
+description = "Additional dependencies for nanobody design"
+
+[feature.nanobody-design.dependencies]
+# Already included in main dependencies
+# biopython, pandas, seaborn, pytorch, transformers
+
+[feature.biomarker-analysis]
+description = "Dependencies for biomarker analysis and survival modeling"
+
+[feature.biomarker-analysis.dependencies]
+# Already included in main dependencies
+# lifelines, scikit-survival, scikit-learn, statsmodels
+
+[feature.metabolic-modeling]
+description = "Dependencies for genome-scale metabolic modeling"
+
+[feature.metabolic-modeling.dependencies]
+# Already included in main dependencies
+# cobra, python-libsbml, optlang, glpk
+
+[environments]
+default = { solve-group = "default" }
+dev = { features = ["dev"], solve-group = "default" }
+nanobody = { features = ["nanobody-design"], solve-group = "default" }
+biomarker = { features = ["biomarker-analysis"], solve-group = "default" }
+metabolic = { features = ["metabolic-modeling"], solve-group = "default" }
+full = { features = ["dev", "nanobody-design", "biomarker-analysis", "metabolic-modeling"], solve-group = "default" }
