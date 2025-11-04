@@ -283,6 +283,80 @@ The tutorial covers:
 - Growth-coupled production strategies
 - Working with large genome-scale models
 
+#### Heterologous Pathway Design
+
+The Virtual Lab includes **AI-guided pathway design** capabilities for engineering strains to produce compounds not native to the organism. The PATHWAY_DESIGNER agent collaborates with the team to design complete heterologous pathways, select enzymes from literature, and add reactions to metabolic models.
+
+**Features:**
+- Design multi-step heterologous pathways
+- Add new metabolites and reactions to models programmatically
+- Automatic cofactor balancing (NAD, NADP, FAD, ATP)
+- Literature-guided enzyme selection from source organisms
+- Pathway feasibility testing with FBA
+- Integration with gene knockout optimization
+
+**Complete Workflow with Pathway Design:**
+
+```bash
+# Launch AI-guided metabolic engineering with pathway design
+jupyter notebook metabolic_modeling/run_metabolic_engineering_with_pathway.ipynb
+```
+
+The workflow demonstrates:
+1. **Target Compound Selection**: Agents discuss what to produce (e.g., 1,3-propanediol)
+2. **Pathway Design**: PATHWAY_DESIGNER identifies required enzymes and reactions from literature
+3. **Model Modification**: Add new metabolites, reactions, and gene associations
+4. **Feasibility Testing**: Verify the pathway can produce the target
+5. **Knockout Optimization**: Identify gene deletions to enhance production
+6. **Strain Design**: Combine heterologous genes + knockouts for final strain
+
+**Example: 1,3-Propanediol Production**
+
+```python
+from pathway_designer_tools import PathwayDesigner
+import cobra
+
+# Load E. coli model
+model = cobra.io.load_model("textbook")
+
+# Initialize pathway designer
+designer = PathwayDesigner(model)
+
+# Add 1,3-PDO pathway from Klebsiella pneumoniae
+# Step 1: Glycerol → 3-Hydroxypropionaldehyde (glycerol dehydratase)
+# Step 2: 3-HPA → 1,3-Propanediol (1,3-propanediol oxidoreductase)
+
+# Add metabolites
+hpa = designer.add_metabolite("3hpald_c", "3-Hydroxypropionaldehyde", "C3H6O2", "c")
+pdo = designer.add_metabolite("13ppd_c", "1,3-Propanediol", "C3H8O2", "c")
+
+# Add reactions with gene associations
+designer.add_reaction(
+    reaction_id="PDO_DhaB",
+    name="Glycerol dehydratase",
+    metabolites={glyc: -1, hpa: 1, h2o: 1},
+    gene_reaction_rule="dhaB1 and dhaB2 and dhaB3"
+)
+
+designer.add_reaction(
+    reaction_id="PDO_DhaT",
+    name="1,3-propanediol oxidoreductase",
+    metabolites={hpa: -1, nadh: -1, h: -1, pdo: 1, nad: 1},
+    gene_reaction_rule="dhaT"
+)
+
+# Test pathway feasibility
+feasibility = designer.test_pathway_feasibility("13ppd_c")
+print(f"Production rate: {feasibility['production_flux']:.4f} mmol/gDW/h")
+```
+
+**Available Example Pathways:**
+- `ethanol`: Ethanol production from pyruvate
+- `succinate`: Enhanced succinate production
+- `1-3-propanediol`: 1,3-PDO from glycerol (heterologous)
+
+See [metabolic_modeling/scripts/pathway_designer_tools.py](metabolic_modeling/scripts/pathway_designer_tools.py) for the complete API.
+
 
 ## Installation
 
